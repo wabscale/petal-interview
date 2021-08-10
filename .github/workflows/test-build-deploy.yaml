@@ -43,7 +43,7 @@ jobs:
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
       with:
-        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        token: "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
     - name: Log into DigitalOcean container registry
       run: doctl registry login
     - name: Build container image
@@ -60,7 +60,7 @@ jobs:
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
       with:
-        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        token: "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
     - name: Save DigitalOcean kubeconfig
       run: doctl kubernetes cluster kubeconfig save petal-interview
     - name: Push out yaml to kubernetes
