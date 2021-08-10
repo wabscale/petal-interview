@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petal-test-api
+  labels:
+    app: petal-test-api
+
+spec:
+
+  # Default replica count is 2. Subject to change depending on
+  # the Horizonal Pod Autoscaler
+  replicas: 2
+
+  # Max 120 seconds to deploy before marked as ProgressDeadlineExceeded.
+  # If that happens, the deployment will be rolled back.
+  progressDeadlineSeconds: 120
+
+  # Specify that we want to do rolling updates. The minimum
+  # number of replicas possible at any time is two. Setting
+  # maxUnavailable to 1 ensures that the services should have
+  # minimal degredation while updating.
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxUnavailable: 1
+
+  selector:
+    matchLabels:
+      app: petal-test-api
+
+  template:
+    metadata:
+      labels:
+        app: petal-test-api
+
+    spec:
+      # Always restart containers
+      restartPolicy: Always
+
+      # Container specs
+      containers:
+      - name: petal-test-api
+
+        # Image from the digital ocean registry
+        image: registry.digitalocean.com/johncunniff/petal-test:latest
+
+        # Always try to pull a new image from the registry
+        imagePullPolicy: Always
+
+        # Set resource requests and limits here. The resource requests
+        # specified will be used by the Horizontal Pod Autoscaler to
+        # determine scaling.
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "300m"
+          limits:
+            memory: "250Mi"
+            cpu: "500m"
+
+        # Expose flask port of 5000
+        ports:
+        - containerPort: 5000
+
+        # Set readinessProbe to prevent broken api pods from
+        # having requests routed to them.
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 1
+          periodSeconds: 3
+          failureThreshold: 2
+
+        # Startup probe gives kubernetes a way of determining
+        # when the pod should actually come out of the PodInitializing
+        # condition.
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 1
+          periodSeconds: 1
+          failureThreshold: 30
+
+        # Basic security context for the container. We just need to
+        # explicitly disable things like privlege escalation so we
+        # can all sleep better at night.
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+
+---
+
+
+# Super basic ClusterIP service for the petal-test-api. Requests reach this
+# service through the traefik ingress specified below.
+apiVersion: v1
+kind: Service
+metadata:
+  name: petal-test-api
+spec:
+  selector:
+    app: petal-test-api
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+
+---
+
+# 
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ingress.route.petal.api.public
+  labels:
+    app: petal-test-api
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`petal-interview.johncunniff.dev`)
+    services:
+    - name: petal-test-api
+      port: 5000
+  tls:
+    certResolver: le
+
+---
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: petal-test-api
+spec:
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: petal-test-api
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 100

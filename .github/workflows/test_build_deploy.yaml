@@ -1,0 +1,71 @@
+name: test-build-deploy
+
+# Controls when the workflow will run
+'on':
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    environment: petal-test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        set -x
+        python -m pip install --upgrade pip virtualenv
+        virtualenv -p $(which python3) venv
+        if [ -f requirements.txt ]; then ./venv/bin/pip install -r requirements.txt; fi
+        ./venv/bin/pip install pytest
+    - name: Background API
+      run: venv/bin/python3 app.py &
+    - name: Test with pytest
+      run: pytest
+    - name: Teardown
+      run: killall -9 python3
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    environment: petal-test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+    - name: Log into DigitalOcean container registry
+      run: doctl registry login
+    - name: Build container image
+      run: docker build -t registry.digitalocean.com/johncunniff/petal-interview .
+    - name: Push image to Docker Hub
+      run: docker push registry.digitalocean.com/johncunniff/petal-interview
+
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    environment: petal-test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+    - name: Save DigitalOcean kubeconfig
+      run: doctl kubernetes cluster kubeconfig save petal-interview
+    - name: Push out yaml to kubernetes
+      run: kubectl apply -f k8s-deployment.yml
+    - name: Restart api deployment
+      run: kubectl rollout restart deplooyment.apps petal-test-api
+    - name: Verify deployment
+      run: kubectl rollout status deployment.apps/petal-test-api
