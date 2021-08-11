@@ -10,6 +10,8 @@ name: test-build-deploy
   workflow_dispatch:
 
 jobs:
+  # Test stage. Will install dependencies, start
+  # the webserver and run pytest
   test:
     name: test
     runs-on: ubuntu-latest
@@ -34,6 +36,9 @@ jobs:
     - name: Teardown
       run: killall -9 python3
 
+  # Build stage.
+  # Will build the docker image, and push it
+  # to the container registry.
   build:
     name: build
     runs-on: ubuntu-latest
@@ -51,6 +56,9 @@ jobs:
     - name: Push image to Docker Hub
       run: docker push registry.digitalocean.com/johncunniff/petal-interview
 
+  # Deploy step.
+  # Will push out yaml to the k8s cluster, then restart
+  # deployments.
   deploy:
     name: deploy
     runs-on: ubuntu-latest
