@@ -27,12 +27,12 @@ jobs:
         set -x
         python -m pip install --upgrade pip virtualenv
         virtualenv -p $(which python3) venv
-        if [ -f requirements.txt ]; then ./venv/bin/pip install -r requirements.txt; fi
+        ./venv/bin/pip install -r requirements.txt
         ./venv/bin/pip install pytest
     - name: Background API
       run: venv/bin/python3 app.py &
     - name: Test with pytest
-      run: pytest
+      run: venv/bin/pytest
     - name: Teardown
       run: killall -9 python3
 
