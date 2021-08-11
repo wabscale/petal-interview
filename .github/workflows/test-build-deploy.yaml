@@ -76,6 +76,6 @@ jobs:
     - name: Push out yaml to kubernetes
       run: kubectl apply -f k8s-deployment.yaml
     - name: Restart api deployment
-      run: kubectl rollout restart deplooyment.apps petal-test-api
+      run: kubectl rollout restart deployment.apps petal-test-api
     - name: Verify deployment
       run: kubectl rollout status deployment.apps/petal-test-api
