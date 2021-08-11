@@ -8,7 +8,7 @@ metadata:
 spec:
 
   # Default replica count is 2. Subject to change depending on
-  # the Horizonal Pod Autoscaler
+  # the Horizontal Pod Autoscaler
   replicas: 2
 
   # Max 120 seconds to deploy before marked as ProgressDeadlineExceeded.
@@ -18,7 +18,7 @@ spec:
   # Specify that we want to do rolling updates. The minimum
   # number of replicas possible at any time is two. Setting
   # maxUnavailable to 1 ensures that the services should have
-  # minimal degredation while updating.
+  # minimal degradation while updating.
   strategy:
     type: "RollingUpdate"
     rollingUpdate:
@@ -110,7 +110,19 @@ spec:
 
 ---
 
-# 
+# Retry 4 times with exponential backoff
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: api-retry
+spec:
+  retry:
+    attempts: 4
+    initialInterval: 100ms
+
+---
+
+# Traefik ingress definition
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
@@ -123,6 +135,8 @@ spec:
   routes:
   - kind: Rule
     match: Host(`petal-interview.johncunniff.dev`)
+    middlewares:
+    - api-retry
     services:
     - name: petal-test-api
       port: 5000
@@ -131,11 +145,25 @@ spec:
 
 ---
 
+# HPA for the petal-test-api deployment
 apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: petal-test-api
 spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: petal-test-api
+
+  # Min and Max number of pods in the deployment
+  minReplicas: 2
+  maxReplicas: 4
+
+  # Translated to english, this basically says that
+  # if 100% of the requested cpu is used for 15 seconds
+  # add another pod. Wait another 30 seconds before doing
+  # anything else.
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 30
@@ -143,12 +171,9 @@ spec:
       - type: Percent
         value: 100
         periodSeconds: 15
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: petal-test-api
-  minReplicas: 2
-  maxReplicas: 4
+
+  # Specify that we want to base our scaling decisions off
+  # of the cpu resource metrics
   metrics:
   - type: Resource
     resource:
