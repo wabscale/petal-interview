@@ -12,6 +12,10 @@ help:
 debug: venv
 	venv/bin/python3 app.py
 
+.PHONY: test               # Run application test (have the app running in another window)
+test: venv
+	venv/bin/pytest
+
 .PHONY: build-docker       # Build docker image
 build-docker:
 	docker build -t $(DOCKER_IMAGE) .
@@ -40,7 +44,7 @@ venv:
 		venv/bin/pip install $(DEV_REQUIREMENTS); \
 	fi
 
-.PHONY: venv               # Provision the initial cluster with traefik and metric-server
+.PHONY: provision-k8s      # Provision the initial cluster with traefik and metric-server
 provision-k8s:
 	helm repo add traefik 'https://helm.traefik.io/traefik'
 	helm upgrade \
@@ -52,6 +56,11 @@ provision-k8s:
 # Install k8s metrics server (necessary for hpas)
 	kubectl apply -f "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
 	kubectl apply -f k8s-deployment.yaml
+
+.PHONY: deploy             # Manually deploy things to the k8s cluster
+deploy: build-docker push-docker
+	kubectl apply -f k8s-deployment.yaml
+	kubectl rollout restart deployment.apps petal-test-api
 
 .PHONY: clean              # Clean local debug environment of artifacts
 clean:
