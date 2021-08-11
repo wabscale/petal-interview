@@ -53,9 +53,9 @@ jobs:
     - name: Log into DigitalOcean container registry
       run: doctl registry login
     - name: Build container image
-      run: docker build -t registry.digitalocean.com/johncunniff/petal-interview .
+      run: docker build -t registry.digitalocean.com/johncunniff/petal-test .
     - name: Push image to Docker Hub
-      run: docker push registry.digitalocean.com/johncunniff/petal-interview
+      run: docker push registry.digitalocean.com/johncunniff/petal-test
 
   # Deploy step.
   # Will push out yaml to the k8s cluster, then restart
@@ -74,7 +74,7 @@ jobs:
     - name: Save DigitalOcean kubeconfig
       run: doctl kubernetes cluster kubeconfig save petal-interview
     - name: Push out yaml to kubernetes
-      run: kubectl apply -f k8s-deployment.yml
+      run: kubectl apply -f k8s-deployment.yaml
     - name: Restart api deployment
       run: kubectl rollout restart deplooyment.apps petal-test-api
     - name: Verify deployment
