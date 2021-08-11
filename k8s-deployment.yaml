@@ -136,7 +136,8 @@ spec:
   - kind: Rule
     match: Host(`petal-interview.johncunniff.dev`)
     middlewares:
-    - api-retry
+    - name: api-retry
+      namespace: default
     services:
     - name: petal-test-api
       port: 5000
