@@ -130,5 +130,6 @@ It would be good to provide clients of the api some kind of website that highlig
 provided. I would probably want to use something like flask-swagger as I have used it in the past.
 That would make the API much more user friendly.
 
-
-
+#### Monitoring
+If this was something important, I would add something like status cake to send me notifications when
+things went down.
