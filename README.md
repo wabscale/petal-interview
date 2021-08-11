@@ -27,7 +27,7 @@ make clean              # Clean local debug environment of artifacts
 ## Try it out
 
 ```shell
-curl -XPOST --data '{"data": "test"}' -H 'application/json'  https://petal-interview.johncunniff.dev/
+curl -XPOST --data '{"data": "test"}' -H 'Content-Type: application/json'  https://petal-interview.johncunniff.dev/
 ```
 
 ## Local Debugging & Testing
