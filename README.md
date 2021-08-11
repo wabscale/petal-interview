@@ -65,11 +65,9 @@ and have a k8s deployment for the api.
 
 ## The CD/CI
 
-Github actions seemed to be the reasonable choice for this situation. Unfortunately while I was working
-on this, github actions went completely down for a long while. I have already wasted enough time setting this 
-up that I think we can just pretend that the github actions stuff was tested and worked properly.
+Github actions seemed to be the reasonable choice for this situation.
 
-![alt github-actions-down](./img/petal-github-actions.png)
+![alt petal-github-actions](./img/petal-github-actions.png)
 
 [The actions workflow is very simple](.github/workflows/test-build-deploy.yaml). 
 There are test, build and deploy steps. They are run sequentially so that
